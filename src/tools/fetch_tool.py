@@ -60,6 +60,7 @@ class FetchArticleTool(BaseTool):
                 return f"Error fetching article from '{url}': {err_text}. Please try another URL."
 
             title = result.get("title", "Untitled Article")
+            # pyrefly: ignore [missing-attribute]
             text = result.get("text", "").strip()
             cached_str = " (cached)" if is_cached else ""
 

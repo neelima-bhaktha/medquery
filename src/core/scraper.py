@@ -98,6 +98,7 @@ def scrape_article(
             "url": url_clean,
             "title": "Domain Blocked",
             "text": f"Scraping blocked: Domain '{domain}' is not in the trusted medical domain whitelist.",
+            # pyrefly: ignore [bad-assignment]
             "cached": False,
             "status": "blocked_untrusted_domain",
         }
@@ -112,6 +113,7 @@ def scrape_article(
                 "url": url_clean,
                 "title": cached["title"],
                 "text": truncated_text,
+                # pyrefly: ignore [bad-assignment]
                 "cached": True,
                 "status": "success",
             }
@@ -123,6 +125,7 @@ def scrape_article(
             "url": url_clean,
             "title": "Access Blocked",
             "text": "Scraping disallowed by robots.txt rules.",
+            # pyrefly: ignore [bad-assignment]
             "cached": False,
             "status": "blocked_by_robots",
         }
@@ -152,6 +155,7 @@ def scrape_article(
             "url": url_clean,
             "title": title,
             "text": truncated_text,
+            # pyrefly: ignore [bad-assignment]
             "cached": False,
             "status": "success",
         }
@@ -162,6 +166,7 @@ def scrape_article(
             "url": url_clean,
             "title": "Fetch Error",
             "text": f"Error scraping article: {e}",
+            # pyrefly: ignore [bad-assignment]
             "cached": False,
             "status": "error",
         }

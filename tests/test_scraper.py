@@ -1,6 +1,8 @@
 import os
 
+# pyrefly: ignore [missing-import]
 from src.core.cache import SQLiteCache
+# pyrefly: ignore [missing-import]
 from src.core.scraper import clean_html_text, scrape_article
 
 
@@ -51,6 +53,7 @@ def test_untrusted_domain_hard_block():
     untrusted_url = "https://random-untrusted-site-999.com/health-blog"
     result = scrape_article(untrusted_url, use_cache=False)
     assert result["status"] == "blocked_untrusted_domain"
+    # pyrefly: ignore [not-iterable]
     assert "trusted medical domain whitelist" in result["text"]
 
 
@@ -58,6 +61,7 @@ def test_scrape_article_truncation_and_caching():
     test_url = "https://europepmc.org"
     res1 = scrape_article(test_url, max_chars=2000, use_cache=True)
     assert res1["status"] == "success"
+    # pyrefly: ignore [bad-argument-type, missing-import]
     assert len(res1["text"]) <= 2000
 
     # Second call should return cached=True
