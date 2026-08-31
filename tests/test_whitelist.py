@@ -1,4 +1,3 @@
-# pyrefly: ignore [missing-import]
 from src.core.whitelist import can_fetch, get_domain, is_trusted_domain
 
 
@@ -13,8 +12,10 @@ def test_is_trusted_domain():
     assert is_trusted_domain("https://unknown-random-blog-site.com/post") is False
 
 
-def test_can_fetch_robots():
-    # MedlinePlus allows general indexing
-    assert can_fetch("https://medlineplus.gov/") is True
+def test_can_fetch_robots_and_hard_whitelist():
+    # Europe PMC allows crawling
+    assert can_fetch("https://europepmc.org/") is True
+    # Non-whitelisted domain is blocked when enforce_trusted=True
+    assert can_fetch("https://untrusted-blog-12345.com/article", enforce_trusted=True) is False
     # Invalid URL returns False
     assert can_fetch("not-a-valid-url") is False

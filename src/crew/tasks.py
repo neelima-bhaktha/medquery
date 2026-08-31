@@ -68,20 +68,26 @@ def get_explanation_task(agent: Agent, query: str, research_task: Task) -> Task:
     Receives Task 1 output via context=[research_task].
     """
     desc = (
-        f"Review the user query '{query}' and the structured medical research report provided in your context.\n"
-        "Synthesize the research findings into a comprehensive, highly readable, and empathetic medical answer.\n\n"
-        "Your output must include:\n"
-        "1. **Executive Summary**: Direct, clear answer to the user's medical query.\n"
-        "2. **Evidence Breakdown by Source**: Key findings, explicitly citing clickable markdown links [Title](URL).\n"
-        "3. **Clinical Interpretation**: Practical explanation of dosage, side effects, mechanisms, or treatment.\n"
-        "4. **Patient Guidance & Disclaimer**: Important safety precautions and recommendation to consult a physician."
+        f"Review the user query '{query}' and the structured medical research report provided in your context.\n\n"
+        "STRICT GROUNDING & SAFETY RULES:\n"
+        "1. You MUST answer ONLY from the provided research report context. If the report doesn't cover a topic, "
+        "explicitly state that the information is not available in the retrieved report instead of guessing.\n"
+        "2. Refuse any requests for specific personal medical diagnoses or personalized prescription dosing rules.\n"
+        "3. Synthesize findings into Executive Summary, Evidence Breakdown with clickable links, and Interpretation.\n"
+        "4. Your response MUST conclude with the exact line:\n"
+        "'This information is for educational purposes only and does not constitute medical advice. "
+        "Always consult a qualified healthcare professional for medical diagnosis or treatment.'"
     )
+    expected = (
+        "A Markdown medical report derived exclusively from retrieved evidence, refusing personal diagnosis/dosing, "
+        "and concluding with the mandatory line: 'This information is for educational purposes only and does not "
+        "constitute medical advice. Always consult a qualified healthcare professional for medical diagnosis "
+        "or treatment.'"
+    )
+
     return Task(
         description=desc,
-        expected_output=(
-            "A well-structured, patient-friendly Markdown medical report with clickable source links, "
-            "clinical context, and safety disclaimers."
-        ),
+        expected_output=expected,
         context=[research_task],
         agent=agent,
     )

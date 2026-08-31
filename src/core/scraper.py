@@ -11,7 +11,7 @@ from urllib3.util import Retry
 from src.core.cache import SQLiteCache
 
 # pyrefly: ignore [missing-import]
-from src.core.whitelist import can_fetch
+from src.core.whitelist import can_fetch, get_domain, is_trusted_domain
 
 logger = logging.getLogger(__name__)
 
@@ -83,16 +83,29 @@ def scrape_article(
     Fetch and extract clean text from a web article.
 
     Features:
-    - 1. Checks SQLite cache first if use_cache=True.
-    - 2. Enforces robots.txt check via urllib.robotparser.
-    - 3. Uses requests with configurable timeout and 2-3 retries.
-    - 4. Parses with BeautifulSoup + lxml.
-    - 5. Truncates text to max_chars (default 2000).
-    - 6. Saves to SQLite cache for fast offline re-runs.
+    - 1. Hard domain whitelist verification before scraping.
+    - 2. Checks SQLite cache first if use_cache=True.
+    - 3. Enforces robots.txt check via urllib.robotparser.
+    - 4. Uses requests with configurable timeout and 2-3 retries.
+    - 5. Parses with BeautifulSoup + lxml.
+    - 6. Truncates text to max_chars (default 2000).
+    - 7. Saves to SQLite cache for fast offline re-runs.
     """
     url_clean = url.strip()
+    domain = get_domain(url_clean)
 
-    # Step 1: Check SQLite Cache
+    # Step 1: Hard Domain Whitelist Verification
+    if not is_trusted_domain(url_clean):
+        logger.warning(f"[HARD DOMAIN BLOCK] Scraping refused for non-whitelisted domain '{domain}': {url_clean}")
+        return {
+            "url": url_clean,
+            "title": "Domain Blocked",
+            "text": f"Scraping blocked: Domain '{domain}' is not in the trusted medical domain whitelist.",
+            "cached": False,
+            "status": "blocked_untrusted_domain",
+        }
+
+    # Step 2: Check SQLite Cache
     if use_cache:
         cached = _cache.get(url_clean)
         if cached:
@@ -106,8 +119,8 @@ def scrape_article(
                 "status": "success",
             }
 
-    # Step 2: Check robots.txt permissions
-    if not can_fetch(url_clean, user_agent=user_agent):
+    # Step 3: Check robots.txt permissions
+    if not can_fetch(url_clean, user_agent=user_agent, enforce_trusted=True):
         logger.warning(f"Robots.txt disallowed scraping for URL: {url_clean}")
         return {
             "url": url_clean,
@@ -117,7 +130,7 @@ def scrape_article(
             "status": "blocked_by_robots",
         }
 
-    # Step 3: Fetch web page using requests session with retry strategy
+    # Step 4: Fetch web page using requests session with retry strategy
     session = _get_session(retries=retries)
     headers = {
         "User-Agent": user_agent,
@@ -128,13 +141,13 @@ def scrape_article(
         response = session.get(url_clean, headers=headers, timeout=timeout)
         response.raise_for_status()
 
-        # Step 4: Parse HTML with BeautifulSoup + lxml
+        # Step 5: Parse HTML with BeautifulSoup + lxml
         title, clean_text = clean_html_text(response.text)
 
-        # Step 5: Truncate text to max_chars (2000 chars)
+        # Step 6: Truncate text to max_chars (2000 chars)
         truncated_text = clean_text[:max_chars]
 
-        # Step 6: Store in SQLite Cache
+        # Step 7: Store in SQLite Cache
         if use_cache:
             _cache.set(url_clean, title, clean_text)
 

@@ -4,7 +4,6 @@ from typing import Type
 from crewai.tools import BaseTool
 from pydantic import BaseModel, Field
 
-# pyrefly: ignore [missing-import]
 from src.core.scraper import scrape_article
 
 logger = logging.getLogger(__name__)
@@ -36,12 +35,22 @@ class FetchArticleTool(BaseTool):
     def _run(self, url: str) -> str:
         """
         Execute web page article fetch. Catches exceptions and returns formatted text or error message.
+        Logs [RETRIEVAL TRAIL] for demo observability.
         """
+        logger.info(f"[RETRIEVAL TRAIL] FetchArticleTool invoked | URL: '{url}'")
         try:
             result = scrape_article(url)
 
             status = result.get("status", "unknown")
-            if status == "blocked_by_robots":
+            is_cached = result.get("cached")
+            logger.info(
+                f"[RETRIEVAL TRAIL] FetchArticleTool result | URL: '{url}' | Status: {status} | Cached: {is_cached}"
+            )
+
+            if status == "blocked_untrusted_domain":
+                domain_msg = result.get("text", "Scraping blocked for non-whitelisted domain.")
+                return f"Unable to fetch article from '{url}': {domain_msg} Please select a whitelisted URL."
+            elif status == "blocked_by_robots":
                 return (
                     f"Unable to fetch article from '{url}': "
                     "Scraping disallowed by robots.txt rules. Please try another URL."
@@ -52,12 +61,12 @@ class FetchArticleTool(BaseTool):
 
             title = result.get("title", "Untitled Article")
             text = result.get("text", "").strip()
-            cached_str = " (cached)" if result.get("cached") else ""
+            cached_str = " (cached)" if is_cached else ""
 
             if not text:
                 return f"Article at '{url}' returned empty text content. Please try another URL."
 
             return f"--- Article Content: {title}{cached_str} ---\nURL: {url}\n\n{text}\n--- End of Article ---"
         except Exception as e:  # noqa: BLE001
-            logger.error(f"Error in FetchArticleTool for URL '{url}': {e}")
+            logger.error(f"[RETRIEVAL TRAIL] FetchArticleTool error for URL '{url}': {e}")
             return f"Error fetching article from '{url}': {e}. Please try another URL."

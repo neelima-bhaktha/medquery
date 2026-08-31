@@ -5,7 +5,7 @@ from urllib.robotparser import RobotFileParser
 
 logger = logging.getLogger(__name__)
 
-# Trusted medical domains list
+# Hard trusted medical domains list
 TRUSTED_DOMAINS = {
     "medlineplus.gov",
     "fda.gov",
@@ -40,17 +40,17 @@ def is_trusted_domain(url: str) -> bool:
     return any(domain == trusted or domain.endswith("." + trusted) for trusted in TRUSTED_DOMAINS)
 
 
-def can_fetch(url: str, user_agent: str = "MedQueryMedicalCrew/1.0", enforce_trusted: bool = False) -> bool:
+def can_fetch(url: str, user_agent: str = "MedQueryMedicalCrew/1.0", enforce_trusted: bool = True) -> bool:
     """
     Check if robots.txt allows crawling the given URL for user_agent.
-    Optionally enforces that domain is in trusted domains list.
+    Enforces hard domain whitelist check before scraping.
     """
     parsed = urlparse(url)
     if not parsed.scheme or not parsed.netloc:
         return False
 
     if enforce_trusted and not is_trusted_domain(url):
-        logger.info(f"URL domain '{parsed.netloc}' is not in trusted whitelist.")
+        logger.warning(f"[HARD DOMAIN BLOCK] URL domain '{parsed.netloc}' is not in trusted medical whitelist.")
         return False
 
     base_url = f"{parsed.scheme}://{parsed.netloc}"

@@ -25,6 +25,11 @@ def test_agent_tool_configurations():
     # Agent 2 (Explainer) MUST have ZERO tools
     assert len(explainer.tools) == 0
 
+    # Agent 2 backstory MUST contain grounding, refusal, and disclaimer rules
+    assert "STRICT GROUNDING RULE" in explainer.backstory
+    assert "REFUSAL RULE" in explainer.backstory
+    assert "MANDATORY DISCLAIMER" in explainer.backstory
+
 
 def test_task_configurations_and_context():
     query = "ibuprofen dosage and side effects"
@@ -40,6 +45,9 @@ def test_task_configurations_and_context():
 
     # Task 2 MUST pass Task 1 in context
     assert explanation_task.context == [research_task]
+
+    # Task 2 expected output MUST require mandatory disclaimer
+    assert "does not constitute medical advice" in explanation_task.expected_output
 
 
 def test_build_medical_crew():
