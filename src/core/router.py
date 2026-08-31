@@ -10,7 +10,8 @@ DRUG_PATTERNS = [
 
 # Research / Scientific inquiry patterns
 RESEARCH_PATTERNS = [
-    r"\b(evidence for|clinical trial|randomized|meta-analysis|systematic review|study|cohort|efficacy of|in vitro|mechanism of action|pubmed|doi|journal|abstract|findings|author)\b",
+    r"\b(evidence for|clinical trial|randomized|meta-analysis|systematic review|study)\b",
+    r"\b(cohort|efficacy of|in vitro|mechanism of action|pubmed|doi|journal|abstract|findings|author)\b",
 ]
 
 # Symptoms & conditions patterns

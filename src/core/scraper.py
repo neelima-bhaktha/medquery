@@ -1,14 +1,15 @@
 import logging
 import re
 from typing import Dict, Optional
+
 import requests
-# pyrefly: ignore [missing-import]
 from bs4 import BeautifulSoup
 from requests.adapters import HTTPAdapter
-# pyrefly: ignore [missing-import]
 from urllib3.util import Retry
 
+# pyrefly: ignore [missing-import]
 from src.core.cache import SQLiteCache
+# pyrefly: ignore [missing-import]
 from src.core.whitelist import can_fetch
 
 logger = logging.getLogger(__name__)
@@ -42,9 +43,7 @@ def clean_html_text(html: str) -> tuple[str, str]:
     soup = BeautifulSoup(html, "lxml")
 
     # Remove script, style, navigation, headers, footers, forms
-    for tag in soup(
-        ["script", "style", "nav", "header", "footer", "form", "noscript", "svg", "iframe", "aside"]
-    ):
+    for tag in soup(["script", "style", "nav", "header", "footer", "form", "noscript", "svg", "iframe", "aside"]):
         tag.decompose()
 
     # Extract page title
@@ -84,7 +83,7 @@ def scrape_article(
 
     Features:
     - 1. Checks SQLite cache first if use_cache=True.
-    - 2. Enforces robots.txt check via urllib.robotsparser.
+    - 2. Enforces robots.txt check via urllib.robotparser.
     - 3. Uses requests with configurable timeout and 2-3 retries.
     - 4. Parses with BeautifulSoup + lxml.
     - 5. Truncates text to max_chars (default 2000).
@@ -146,7 +145,7 @@ def scrape_article(
             "status": "success",
         }
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         logger.error(f"Failed to scrape URL '{url_clean}': {e}")
         return {
             "url": url_clean,

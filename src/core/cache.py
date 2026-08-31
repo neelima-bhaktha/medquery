@@ -1,7 +1,10 @@
+import logging
 import os
 import sqlite3
 import time
 from typing import Dict, Optional
+
+logger = logging.getLogger(__name__)
 
 DEFAULT_CACHE_DIR = ".cache"
 DEFAULT_DB_NAME = "web_cache.db"
@@ -58,8 +61,8 @@ class SQLiteCache:
                         "text": row["text"],
                         "fetched_at": row["fetched_at"],
                     }
-        except Exception:
-            pass
+        except sqlite3.Error as e:
+            logger.debug(f"SQLite cache fetch error for URL '{url_normalized}': {e}")
         return None
 
     def set(self, url: str, title: str, text: str) -> None:
@@ -78,8 +81,8 @@ class SQLiteCache:
                     (url_normalized, title, text, now),
                 )
                 conn.commit()
-        except Exception:
-            pass
+        except sqlite3.Error as e:
+            logger.debug(f"SQLite cache set error for URL '{url_normalized}': {e}")
 
     def clear(self) -> None:
         """
@@ -89,5 +92,5 @@ class SQLiteCache:
             with self._get_connection() as conn:
                 conn.execute("DELETE FROM page_cache")
                 conn.commit()
-        except Exception:
-            pass
+        except sqlite3.Error as e:
+            logger.debug(f"SQLite cache clear error: {e}")
