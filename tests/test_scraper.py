@@ -1,5 +1,8 @@
 import os
+
+# pyrefly: ignore [missing-import]
 from src.core.cache import SQLiteCache
+# pyrefly: ignore [missing-import]
 from src.core.scraper import clean_html_text, scrape_article
 
 
@@ -42,7 +45,7 @@ def test_sqlite_cache():
         if os.path.exists(db_path):
             try:
                 os.remove(db_path)
-            except Exception:
+            except OSError:
                 pass
 
 

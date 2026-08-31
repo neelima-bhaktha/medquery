@@ -1,8 +1,14 @@
 # pyrefly: ignore [missing-import]
-import pytest
 from src.core.router import classify_query
+# pyrefly: ignore [missing-import]
 from src.core.search import search_medical_sources
-from src.core.sources import Source, search_europepmc, search_medlineplus, search_openfda
+# pyrefly: ignore [missing-import]
+from src.core.sources import (
+    Source,
+    search_europepmc,
+    search_medlineplus,
+    search_openfda,
+)
 
 
 def test_source_dataclass():
