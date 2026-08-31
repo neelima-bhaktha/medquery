@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MedQuery - Multi-Agent Medical Research Assistant</title>
+  
+  <!-- Google Fonts: Outfit & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Marked.js for rendering Markdown -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  
+  <style>
+    :root {
+      --bg-primary: #0b0f19;
+      --bg-card: rgba(30, 41, 59, 0.7);
+      --bg-card-border: rgba(255, 255, 255, 0.1);
+      --accent-cyan: #38bdf8;
+      --accent-indigo: #818cf8;
+      --accent-emerald: #34d399;
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      line-height: 1.6;
+      background-image: 
+        radial-gradient(circle at 15% 15%, rgba(56, 189, 248, 0.12) 0%, transparent 40%),
+        radial-gradient(circle at 85% 85%, rgba(129, 140, 248, 0.12) 0%, transparent 40%);
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 2.5rem 1.5rem;
+      width: 100%;
+      flex: 1;
+    }
+
+    /* Header */
+    header {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    .logo-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(56, 189, 248, 0.1);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      color: var(--accent-cyan);
+      padding: 0.4rem 1rem;
+      border-radius: 9999px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+
+    h1 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 2.75rem;
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 50%, var(--accent-cyan) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 0.75rem;
+    }
+
+    .subtitle {
+      color: var(--text-secondary);
+      font-size: 1.125rem;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    /* Source Badges */
+    .source-badges {
+      display: flex;
+      justify-content: center;
+      gap: 0.75rem;
+      margin-top: 1.25rem;
+      flex-wrap: wrap;
+    }
+
+    .source-tag {
+      background: var(--bg-card);
+      border: 1px solid var(--bg-card-border);
+      padding: 0.25rem 0.75rem;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .source-tag dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: var(--accent-emerald);
+    }
+
+    /* Search Box */
+    .search-card {
+      background: var(--bg-card);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--bg-card-border);
+      border-radius: 16px;
+      padding: 1.75rem;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+      margin-bottom: 2.5rem;
+    }
+
+    .input-group {
+      display: flex;
+      gap: 0.75rem;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 12px;
+      padding: 1rem 1.25rem;
+      color: var(--text-primary);
+      font-size: 1rem;
+      font-family: inherit;
+      outline: none;
+      transition: all 0.2s ease;
+    }
+
+    input[type="text"]:focus {
+      border-color: var(--accent-cyan);
+      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
+    }
+
+    button.btn-search {
+      background: linear-gradient(135deg, var(--accent-cyan) 0%, var(--accent-indigo) 100%);
+      color: #0f172a;
+      font-weight: 700;
+      border: none;
+      border-radius: 12px;
+      padding: 0 1.75rem;
+      font-size: 1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: transform 0.15s ease, opacity 0.15s ease;
+    }
+
+    button.btn-search:hover {
+      opacity: 0.95;
+      transform: translateY(-1px);
+    }
+
+    button.btn-search:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* Sample Query Pills */
+    .sample-queries {
+      margin-top: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .sample-label {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .pill {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--text-secondary);
+      padding: 0.3rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .pill:hover {
+      background: rgba(56, 189, 248, 0.15);
+      border-color: rgba(56, 189, 248, 0.4);
+      color: var(--accent-cyan);
+    }
+
+    /* Loading Spinner & Status */
+    .loading-container {
+      display: none;
+      text-align: center;
+      padding: 3rem 1.5rem;
+      background: var(--bg-card);
+      border-radius: 16px;
+      border: 1px solid var(--bg-card-border);
+      margin-bottom: 2rem;
+    }
+
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 4px solid rgba(56, 189, 248, 0.2);
+      border-top-color: var(--accent-cyan);
+      border-radius: 50%;
+      animation: spin 1s infinite linear;
+      margin: 0 auto 1.25rem;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .status-text {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 0.5rem;
+    }
+
+    .status-sub {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+    }
+
+    /* Results Section */
+    .results-card {
+      display: none;
+      background: var(--bg-card);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--bg-card-border);
+      border-radius: 16px;
+      padding: 2rem;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+      margin-bottom: 2.5rem;
+    }
+
+    .results-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding-bottom: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .results-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--accent-cyan);
+    }
+
+    .btn-copy {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: var(--text-primary);
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    .btn-copy:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    /* Markdown Styling */
+    .report-content {
+      font-size: 1rem;
+      color: #e2e8f0;
+      line-height: 1.7;
+    }
+
+    .report-content h1, 
+    .report-content h2, 
+    .report-content h3 {
+      font-family: 'Outfit', sans-serif;
+      color: var(--text-primary);
+      margin-top: 1.5rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .report-content h2 {
+      font-size: 1.35rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding-bottom: 0.4rem;
+    }
+
+    .report-content ul, 
+    .report-content ol {
+      margin-left: 1.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .report-content li {
+      margin-bottom: 0.4rem;
+    }
+
+    .report-content p {
+      margin-bottom: 1rem;
+    }
+
+    .report-content a {
+      color: var(--accent-cyan);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    .report-content hr {
+      border: None;
+      height: 1px;
+      background: rgba(255, 255, 255, 0.15);
+      margin: 2rem 0;
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 1.5rem;
+      text-align: center;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      background: rgba(15, 23, 42, 0.6);
+    }
+
+    .disclaimer-box {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #fca5a5;
+      padding: 1rem;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      margin-top: 1.5rem;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <div class="logo-badge">
+        <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>
+        CrewAI Multi-Agent System
+      </div>
+      <h1>MedQuery Medical Assistant</h1>
+      <p class="subtitle">Evidence-based medical research synthesized directly from trusted government and clinical databases.</p>
+      
+      <div class="source-badges">
+        <div class="source-tag"><dot></dot> MedlinePlus Connect</div>
+        <div class="source-tag"><dot></dot> openFDA Drug Labels</div>
+        <div class="source-tag"><dot></dot> Europe PMC Journals</div>
+      </div>
+    </header>
+
+    <div class="search-card">
+      <form id="search-form">
+        <div class="input-group">
+          <input type="text" id="query-input" placeholder="Ask a medical query, drug name, or symptom (e.g. Ibuprofen side effects)..." required>
+          <button type="submit" class="btn-search" id="search-btn">
+            <span>Search</span>
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+          </button>
+        </div>
+      </form>
+
+      <div class="sample-queries">
+        <span class="sample-label">Examples:</span>
+        <button class="pill" onclick="setQuery('ibuprofen dosage and side effects')">Ibuprofen Dosage & Side Effects</button>
+        <button class="pill" onclick="setQuery('metformin indications and warnings')">Metformin Warnings</button>
+        <button class="pill" onclick="setQuery('evidence for hypertension treatment')">Hypertension Evidence</button>
+      </div>
+    </div>
+
+    <!-- Loading State -->
+    <div class="loading-container" id="loading-box">
+      <div class="spinner"></div>
+      <div class="status-text" id="status-heading">Searching Trusted Databases...</div>
+      <div class="status-sub" id="status-subtext">Agent 1 (Researcher) is querying Europe PMC, MedlinePlus, and openFDA...</div>
+    </div>
+
+    <!-- Report Output -->
+    <div class="results-card" id="results-box">
+      <div class="results-header">
+        <div class="results-title">Medical Evidence Report</div>
+        <button class="btn-copy" id="copy-btn" onclick="copyReport()">Copy Markdown</button>
+      </div>
+      <div class="report-content" id="report-body"></div>
+    </div>
+
+    <div class="disclaimer-box">
+      <strong>Educational Use Only:</strong> MedQuery synthesizes evidence from public APIs. It does not provide medical diagnoses or prescription advice. Always consult a licensed physician.
+    </div>
+  </div>
+
+  <footer>
+    &copy; 2026 MedQuery Medical Crew. Powered by CrewAI, FastAPI & Groq Llama 3.3.
+  </footer>
+
+  <script>
+    let currentRawReport = "";
+
+    function setQuery(text) {
+      document.getElementById('query-input').value = text;
+      document.getElementById('search-form').dispatchEvent(new Event('submit'));
+    }
+
+    document.getElementById('search-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const query = document.getElementById('query-input').value.trim();
+      if (!query) return;
+
+      const searchBtn = document.getElementById('search-btn');
+      const loadingBox = document.getElementById('loading-box');
+      const resultsBox = document.getElementById('results-box');
+      const reportBody = document.getElementById('report-body');
+
+      searchBtn.disabled = true;
+      loadingBox.style.display = 'block';
+      resultsBox.style.display = 'none';
+
+      try {
+        const response = await fetch('/api/v1/search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: query })
+        });
+
+        if (!response.ok) {
+          const errData = await response.json();
+          throw new Error(errData.detail || 'Medical search failed');
+        }
+
+        const data = await response.json();
+        currentRawReport = data.report;
+        
+        // Render Markdown content safely
+        reportBody.innerHTML = marked.parse(data.report);
+        resultsBox.style.display = 'block';
+
+      } catch (err) {
+        alert('Error: ' + err.message);
+      } finally {
+        searchBtn.disabled = false;
+        loadingBox.style.display = 'none';
+      }
+    });
+
+    function copyReport() {
+      if (!currentRawReport) return;
+      navigator.clipboard.writeText(currentRawReport).then(() => {
+        const btn = document.getElementById('copy-btn');
+        btn.innerText = 'Copied!';
+        setTimeout(() => { btn.innerText = 'Copy Markdown'; }, 2000);
+      });
+    }
+  </script>
+</body>
+</html>

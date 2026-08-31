@@ -2,9 +2,16 @@ from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 
+# pyrefly: ignore [missing-import]
 from src.api.app import app
 
 client = TestClient(app)
+
+
+def test_root_index_endpoint():
+    response = client.get("/")
+    assert response.status_code == 200
+    assert "MedQuery" in response.text or "message" in response.json()
 
 
 def test_health_check_endpoint():

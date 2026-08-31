@@ -1,16 +1,28 @@
 import logging
+import os
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
+# pyrefly: ignore [missing-import]
 from src.api.schemas import HealthResponse, QueryRequest, QueryResponse, SourcesResponse
+
+# pyrefly: ignore [missing-import]
 from src.config.validation import validate_config
+
+# pyrefly: ignore [missing-import]
 from src.core.whitelist import TRUSTED_DOMAINS
+
+# pyrefly: ignore [missing-import]
 from src.crew import run_medical_crew
 
 logger = logging.getLogger("api")
+
+STATIC_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "static")
 
 
 @asynccontextmanager
@@ -45,6 +57,21 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Mount static directory for frontend assets
+if os.path.exists(STATIC_DIR):
+    app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
+
+@app.get("/", include_in_schema=False)
+def serve_index():
+    """
+    Serve index.html web interface at root endpoint GET /.
+    """
+    index_path = os.path.join(STATIC_DIR, "index.html")
+    if os.path.exists(index_path):
+        return FileResponse(index_path)
+    return {"message": "MedQuery Medical Crew API Server running. Visit /docs for API documentation."}
 
 
 @app.get("/health", response_model=HealthResponse, tags=["Health"])
