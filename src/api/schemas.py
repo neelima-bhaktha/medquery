@@ -1,4 +1,4 @@
-from typing import List
+from typing import Any, Dict, List
 
 from pydantic import BaseModel, Field
 
@@ -19,9 +19,14 @@ class QueryResponse(BaseModel):
     """Output response containing generated Markdown report and execution metadata."""
 
     query: str = Field(..., description="The original medical query.")
+    answer: str = Field(..., description="Synthesized medical response from Explainer Agent.")
     report: str = Field(..., description="Generated Markdown medical report from Explainer Agent.")
     status: str = Field(..., description="Execution status (e.g., success, error).")
     created_at: str = Field(..., description="ISO 8601 timestamp of response generation.")
+    sources: List[Dict[str, Any]] = Field(
+        default_factory=list, description="List of verified sources retrieved by Agent 1."
+    )
+    stats: Dict[str, Any] = Field(default_factory=dict, description="Execution telemetry statistics.")
 
 
 class HealthResponse(BaseModel):

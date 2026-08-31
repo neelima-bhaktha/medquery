@@ -11,7 +11,7 @@ client = TestClient(app)
 def test_root_index_endpoint():
     response = client.get("/")
     assert response.status_code == 200
-    assert "MedQuery" in response.text or "message" in response.json()
+    assert "Medical" in response.text or "MedQuery" in response.text or "message" in response.json()
 
 
 def test_health_check_endpoint():
@@ -54,6 +54,9 @@ def test_search_endpoint_success(mock_run_crew):
     data = response.json()
     assert data["query"] == "ibuprofen dosage and side effects"
     assert "Mock Medical Report" in data["report"]
+    assert "Mock Medical Report" in data["answer"]
     assert data["status"] == "success"
     assert "created_at" in data
+    assert "sources" in data
+    assert "stats" in data
     mock_run_crew.assert_called_once_with("ibuprofen dosage and side effects")

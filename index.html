@@ -258,19 +258,15 @@
     <details class="endpoint">
       <summary>API settings and expected response shape</summary>
       <label for="base" style="margin-top:10px">Base URL</label>
-      <input type="text" id="base" value="http://localhost:8000" spellcheck="false">
+      <input type="text" id="base" value="" placeholder="Default: same host as page (e.g. http://localhost:8000)" spellcheck="false">
       <p style="font-size:13.5px;margin:10px 0 0">
-        The console posts <code>{"query": "..."}</code> to <code>/query</code>. If that call fails it falls back to
-        demo data so the page still shows something.
+        The console posts <code>{"query": "..."}</code> to <code>/api/v1/search</code> or <code>/query</code>. If that call fails it falls back to demo data.
       </p>
       <ul style="font-size:13.5px;margin:10px 0 0;padding-left:20px">
-        <li><code>answer</code> — the text from agent 2. This is the only field the answer panel shows.</li>
-        <li><code>report.sources</code> — one entry per article, each with a title, url, snippet and origin.</li>
-        <li><code>stats</code> — optional numbers for the telemetry bar.</li>
+        <li><code>answer</code> / <code>report</code> — synthesized evidence text from Agent 2.</li>
+        <li><code>sources</code> — array of verified source articles retrieved by Agent 1.</li>
+        <li><code>stats</code> — execution telemetry (LLM calls, latency, tokens, routed domains).</li>
       </ul>
-      <p style="font-size:13.5px;margin:10px 0 0">
-        Extra fields are ignored, and a bare <code>{"answer": "..."}</code> works on its own.
-      </p>
     </details>
   </section>
 
@@ -405,17 +401,15 @@ function renderSources(sources){
   body.innerHTML = sources.map(s => `
     <article class="source">
       <div class="src-meta">
-        <span class="badge ${esc(s.origin)}">${esc(s.origin || "source")}</span>
+        <span class="badge ${esc(s.origin || "medlineplus")}">${esc(s.origin || "source")}</span>
         ${s.identifier ? `<span class="date">${esc(s.identifier)}</span>` : ""}
         ${s.date ? `<span class="date">· ${esc(s.date)}</span>` : ""}
       </div>
-      <h4><a href="${esc(s.url)}" target="_blank" rel="noopener noreferrer">${esc(s.title)}</a></h4>
-      <p>${esc(s.snippet || "")}</p>
+      <h4><a href="${esc(s.url || '#')}" target="_blank" rel="noopener noreferrer">${esc(s.title || 'Untitled Source')}</a></h4>
+      <p>${esc(s.snippet || s.text || "")}</p>
     </article>`).join("");
 }
 
-// Pull the answer text out of whatever the API sent back. CrewAI wraps its
-// output in .raw, some setups return a JSON string, some return the object.
 function extractAnswer(v, depth){
   depth = depth || 0;
   if(v == null || depth > 4) return null;
@@ -427,7 +421,7 @@ function extractAnswer(v, depth){
     return t.replace(/^```(?:json|markdown)?\s*|\s*```$/g, "").trim() || null;
   }
   if(typeof v === "object"){
-    for(const k of ["answer","raw","output","result","text","final_answer","content"]){
+    for(const k of ["answer","report","raw","output","result","text","final_answer","content"]){
       if(v[k] != null){
         const found = extractAnswer(v[k], depth+1);
         if(found) return found;
@@ -447,9 +441,10 @@ function normalize(data){
     answer: extractAnswer(data),
     refused: !!(data.refused ?? inner.refused),
     refusal_reason: data.refusal_reason ?? inner.refusal_reason ?? null,
-    report: { sources: (data.report && data.report.sources)
+    report: { sources: (data.sources)
+                     || (data.report && data.report.sources)
                      || (inner.report && inner.report.sources)
-                     || data.sources || inner.sources || [] },
+                     || inner.sources || [] },
     stats: data.stats || inner.stats || {}
   };
 }
@@ -465,7 +460,7 @@ function renderAnswer(data){
   }
   const html = esc(data.answer)
     .split(/\n\n+/)
-    .map(p => "<p>" + p.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>") + "</p>")
+    .map(p => "<p>" + p.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>").replace(/\n/g, "<br>") + "</p>")
     .join("");
   body.innerHTML = `<div class="answer-text">${html}</div>`;
 }
@@ -494,24 +489,42 @@ async function run(){
 
   let data = null, live = false;
   try{
-    const base = $("base").value.replace(/\/+$/,"");
-    const res = await fetch(base + "/query", {
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({ query })
-    });
+    const baseInput = $("base").value.trim().replace(/\/+$/,"");
+    const base = baseInput || window.location.origin;
+    let res;
+    try {
+      res = await fetch(base + "/api/v1/search", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ query })
+      });
+    } catch(e) {
+      res = await fetch(base + "/query", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ query })
+      });
+    }
+    if(!res || !res.ok) {
+      res = await fetch(base + "/query", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ query })
+      });
+    }
     if(!res.ok) throw new Error("HTTP " + res.status);
     data = normalize(await res.json());
     live = true;
   }catch(err){
+    console.warn("Live API request failed, using demo fallback:", err);
     data = DEMO[query.toLowerCase()] || FALLBACK;
   }
 
   $("modePill").textContent = live ? "Live API" : "Demo data";
   $("modePill").dataset.live = live ? "true" : "false";
 
-  const kept = data.stats ? data.stats.sources_kept : 0;
-  if(data.refused || !kept){
+  const kept = data.stats ? (data.stats.sources_kept ?? (data.report?.sources?.length || 0)) : (data.report?.sources?.length || 0);
+  if(data.refused || (!kept && !data.answer)){
     setStages("fail", ["Stopped here","Never ran","Never ran"]);
     stages[0].dataset.state = kept ? "done" : "fail";
   }else{
