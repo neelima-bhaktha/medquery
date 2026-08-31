@@ -4,6 +4,7 @@ from typing import List, Optional
 
 # pyrefly: ignore [missing-import]
 from src.core.router import classify_query
+
 # pyrefly: ignore [missing-import]
 from src.core.sources import (
     Source,
