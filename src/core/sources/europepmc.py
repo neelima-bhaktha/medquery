@@ -4,7 +4,6 @@ from typing import List
 
 import requests
 
-# pyrefly: ignore [missing-import]
 from src.core.sources.base import Source
 
 logger = logging.getLogger(__name__)

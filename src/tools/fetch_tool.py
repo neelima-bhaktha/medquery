@@ -4,7 +4,6 @@ from typing import Type
 from crewai.tools import BaseTool
 from pydantic import BaseModel, Field
 
-# pyrefly: ignore [missing-import]
 from src.core.scraper import scrape_article
 
 logger = logging.getLogger(__name__)

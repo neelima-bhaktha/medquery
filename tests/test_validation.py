@@ -3,7 +3,6 @@ from unittest.mock import patch
 
 import pytest
 
-# pyrefly: ignore [missing-import]
 from src.config.validation import validate_config
 
 

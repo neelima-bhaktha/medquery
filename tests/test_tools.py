@@ -1,4 +1,3 @@
-# pyrefly: ignore [missing-import]
 from src.tools import FetchArticleTool, MedicalSearchTool
 
 

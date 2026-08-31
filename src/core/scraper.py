@@ -7,10 +7,7 @@ from bs4 import BeautifulSoup
 from requests.adapters import HTTPAdapter
 from urllib3.util import Retry
 
-# pyrefly: ignore [missing-import]
 from src.core.cache import SQLiteCache
-
-# pyrefly: ignore [missing-import]
 from src.core.whitelist import can_fetch, get_domain, is_trusted_domain
 
 logger = logging.getLogger(__name__)

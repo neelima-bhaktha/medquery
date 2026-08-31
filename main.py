@@ -3,11 +3,8 @@ import logging
 import os
 import sys
 
-# pyrefly: ignore [missing-import]
 from src.config.settings import DEFAULT_OUTPUT_FILE, OUTPUT_DIR
-# pyrefly: ignore [missing-import]
 from src.config.validation import validate_config
-# pyrefly: ignore [missing-import]
 from src.crew import run_medical_crew
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")

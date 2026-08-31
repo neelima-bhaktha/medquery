@@ -2,10 +2,7 @@ import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List, Optional
 
-# pyrefly: ignore [missing-import]
 from src.core.router import classify_query
-
-# pyrefly: ignore [missing-import]
 from src.core.sources import (
     Source,
     search_europepmc,

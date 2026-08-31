@@ -5,16 +5,9 @@ from datetime import datetime, timezone
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 
-# pyrefly: ignore [missing-import]
 from src.api.schemas import HealthResponse, QueryRequest, QueryResponse, SourcesResponse
-
-# pyrefly: ignore [missing-import]
 from src.config.validation import validate_config
-
-# pyrefly: ignore [missing-import]
 from src.core.whitelist import TRUSTED_DOMAINS
-
-# pyrefly: ignore [missing-import]
 from src.crew import run_medical_crew
 
 logger = logging.getLogger("api")

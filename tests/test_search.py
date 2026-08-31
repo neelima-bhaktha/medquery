@@ -1,10 +1,5 @@
-# pyrefly: ignore [missing-import]
 from src.core.router import classify_query
-
-# pyrefly: ignore [missing-import]
 from src.core.search import search_medical_sources
-
-# pyrefly: ignore [missing-import]
 from src.core.sources import (
     Source,
     search_europepmc,
