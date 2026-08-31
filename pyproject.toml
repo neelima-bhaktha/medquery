@@ -7,3 +7,6 @@ ignore = ["BLE001", "S110"]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
+
+[tool.pyrefly]
+search-path = ["."]
