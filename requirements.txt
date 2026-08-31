@@ -1,9 +1,11 @@
 # Core Dependencies
 crewai==1.15.18
+litellm==1.98.0
 requests==2.34.2
 beautifulsoup4==4.15.0
 lxml==6.1.2
 python-dotenv==1.2.3
+
 
 # Transitive & Environment Dependencies
 aiofiles==24.1.0
