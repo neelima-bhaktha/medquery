@@ -1,7 +1,9 @@
 import logging
 import time
 from typing import List
+
 import requests
+
 from src.core.sources.base import Source
 
 logger = logging.getLogger(__name__)
@@ -36,7 +38,10 @@ def search_medlineplus(query: str, limit: int = 3, timeout: int = 5) -> List[Sou
 
             for entry in entries[:limit]:
                 title_obj = entry.get("title", {})
-                title = title_obj.get("_value", "MedlinePlus Medical Topic") if isinstance(title_obj, dict) else str(title_obj)
+                if isinstance(title_obj, dict):
+                    title = title_obj.get("_value", "MedlinePlus Medical Topic")
+                else:
+                    title = str(title_obj)
 
                 summary_obj = entry.get("summary", {})
                 snippet = summary_obj.get("_value", title) if isinstance(summary_obj, dict) else str(summary_obj)
@@ -61,7 +66,7 @@ def search_medlineplus(query: str, limit: int = 3, timeout: int = 5) -> List[Sou
                     )
                 )
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         logger.warning(f"MedlinePlus primary search failed for query '{query}': {e}")
 
     # Fallback search if Connect API returned 0 results or failed
@@ -86,7 +91,7 @@ def search_medlineplus(query: str, limit: int = 3, timeout: int = 5) -> List[Sou
                             score=1.0,
                         )
                     )
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             logger.warning(f"MedlinePlus fallback search failed for query '{query}': {e}")
 
     # Direct fallback search page entry if API returns empty

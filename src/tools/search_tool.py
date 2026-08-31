@@ -1,10 +1,10 @@
 import logging
 from typing import Type
-# pyrefly: ignore [missing-import]
+
 from crewai.tools import BaseTool
-# pyrefly: ignore [missing-import]
 from pydantic import BaseModel, Field
 
+# pyrefly: ignore [missing-import]
 from src.core.search import search_medical_sources
 
 logger = logging.getLogger(__name__)
@@ -52,6 +52,6 @@ class MedicalSearchTool(BaseTool):
                 )
 
             return "\n".join(output_lines)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             logger.error(f"Error in MedicalSearchTool for query '{query}': {e}")
             return f"Error executing medical search for '{query}': {e}"

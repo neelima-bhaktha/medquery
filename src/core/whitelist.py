@@ -61,7 +61,7 @@ def can_fetch(url: str, user_agent: str = "MedQueryMedicalCrew/1.0", enforce_tru
         parser.set_url(robots_url)
         try:
             parser.read()
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             logger.debug(f"Failed to read robots.txt from '{robots_url}': {e}")
         _ROBOTS_CACHE[base_url] = parser
 

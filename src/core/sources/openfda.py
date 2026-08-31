@@ -1,7 +1,9 @@
 import logging
 import time
 from typing import List
+
 import requests
+
 from src.core.sources.base import Source
 
 logger = logging.getLogger(__name__)
@@ -21,9 +23,9 @@ def search_openfda(query: str, limit: int = 3, timeout: int = 5) -> List[Source]
     # Search strategy: exact field match first, then broader text search
     search_queries = [
         f'openfda.brand_name:"{clean_query}"+openfda.generic_name:"{clean_query}"',
-        f'openfda.brand_name:{clean_query}*+openfda.generic_name:{clean_query}*',
+        f"openfda.brand_name:{clean_query}*+openfda.generic_name:{clean_query}*",
         f'indications_and_usage:"{clean_query}"',
-        f'{clean_query}',
+        f"{clean_query}",
     ]
 
     for search_term in search_queries:
@@ -71,11 +73,15 @@ def search_openfda(query: str, limit: int = 3, timeout: int = 5) -> List[Source]
                 if dosage and not snippet_parts:
                     snippet_parts.append(f"Dosage: {dosage[:200]}...")
 
-                snippet = " | ".join(snippet_parts) if snippet_parts else f"Official openFDA drug label for {clean_query}."
+                fallback_snippet = f"Official openFDA drug label for {clean_query}."
+                snippet = " | ".join(snippet_parts) if snippet_parts else fallback_snippet
 
                 # Construct openFDA reference URL
                 spl_id = openfda_info.get("spl_id", [""])[0]
-                url = f"https://labels.fda.gov/labeldetails.cfm?setid={spl_id}" if spl_id else f"https://api.fda.gov/drug/label.json?search={clean_query}"
+                if spl_id:
+                    url = f"https://labels.fda.gov/labeldetails.cfm?setid={spl_id}"
+                else:
+                    url = f"https://api.fda.gov/drug/label.json?search={clean_query}"
 
                 # Avoid duplicate URLs
                 if not any(r.url == url for r in results):
@@ -93,7 +99,7 @@ def search_openfda(query: str, limit: int = 3, timeout: int = 5) -> List[Source]
                             },
                         )
                     )
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             logger.warning(f"openFDA query '{search_term}' failed: {e}")
 
     return results[:limit]

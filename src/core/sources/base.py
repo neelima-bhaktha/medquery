@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Any, Dict, Optional
+from typing import Any
 
 
 @dataclass
@@ -9,4 +9,4 @@ class Source:
     snippet: str
     source_type: str  # 'europepmc' | 'medlineplus' | 'openfda'
     score: float = 1.0
-    extra_meta: Optional[Dict[str, Any]] = field(default_factory=dict)
+    extra_meta: dict[str, Any] | None = field(default_factory=dict)

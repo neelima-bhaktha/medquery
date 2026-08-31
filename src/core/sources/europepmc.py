@@ -1,7 +1,10 @@
 import logging
 import time
 from typing import List
+
 import requests
+
+# pyrefly: ignore [missing-import]
 from src.core.sources.base import Source
 
 logger = logging.getLogger(__name__)
@@ -76,7 +79,7 @@ def search_europepmc(query: str, limit: int = 3, timeout: int = 5) -> List[Sourc
                     },
                 )
             )
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         logger.warning(f"Europe PMC search failed for query '{query}': {e}")
 
     return results

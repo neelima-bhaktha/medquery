@@ -1,8 +1,10 @@
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Dict, List, Optional
+from typing import List, Optional
 
+# pyrefly: ignore [missing-import]
 from src.core.router import classify_query
+# pyrefly: ignore [missing-import]
 from src.core.sources import (
     Source,
     search_europepmc,
@@ -64,7 +66,7 @@ def search_medical_sources(
             try:
                 source_results = future.result(timeout=10)
                 all_sources.extend(source_results)
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 logger.warning(f"Parallel fetch for source '{source_name}' failed: {e}")
 
     # Deduplicate results based on URL and title similarity
