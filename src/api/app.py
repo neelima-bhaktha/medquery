@@ -6,7 +6,6 @@ from datetime import datetime, timezone
 
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 # pyrefly: ignore [missing-import]
@@ -22,8 +21,6 @@ from src.core.whitelist import TRUSTED_DOMAINS
 from src.crew import run_medical_crew
 
 logger = logging.getLogger("api")
-
-STATIC_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "static")
 
 
 @asynccontextmanager
@@ -59,22 +56,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Mount static directory for frontend assets
-if os.path.exists(STATIC_DIR):
-    app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
-
-@app.get("/", include_in_schema=False)
-def serve_index():
-    """
-    Serve index.html web interface at root endpoint GET /.
-    """
-    index_path = os.path.join(STATIC_DIR, "index.html")
-    if not os.path.exists(index_path):
-        index_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "index.html")
-    if os.path.exists(index_path):
-        return FileResponse(index_path)
-    return {"message": "MedQuery Medical Crew API Server running. Visit /docs for API documentation."}
+# --- API Routes ---
 
 
 @app.get("/health", response_model=HealthResponse, tags=["Health"])
@@ -98,8 +81,8 @@ def get_trusted_sources():
     return SourcesResponse(trusted_domains=sorted(list(TRUSTED_DOMAINS)))
 
 
-@app.post("/api/v1/search", response_model=QueryResponse, tags=["Search"])
-@app.post("/query", response_model=QueryResponse, tags=["Search"], include_in_schema=False)
+@app.post("/query", response_model=QueryResponse, tags=["Search"])
+@app.post("/api/v1/search", response_model=QueryResponse, tags=["Search"], include_in_schema=False)
 def execute_medical_search(payload: QueryRequest):
     """
     Execute multi-agent CrewAI search for a medical query.
@@ -156,3 +139,9 @@ def execute_medical_search(payload: QueryRequest):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Medical crew execution error: {e}",
         ) from e
+
+
+# --- Static Files Mount (MUST BE THE LAST ROUTE REGISTERED) ---
+SRC_STATIC_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static")
+if os.path.exists(SRC_STATIC_DIR):
+    app.mount("/", StaticFiles(directory=SRC_STATIC_DIR, html=True), name="static")

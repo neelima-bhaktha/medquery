@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Medical Crew — run console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Archivo+Black&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#EFEAE0;
+    --ink:#000000;
+    --retrieve:#2BB3A3;
+    --answer:#B79CFF;
+    --warn:#FFC531;
+    --alert:#FF5A47;
+    --muted:#7A7264;
+    --shadow:6px 6px 0 var(--ink);
+    --shadow-sm:3px 3px 0 var(--ink);
+    --border:3px solid var(--ink);
+  }
+
+  *{box-sizing:border-box}
+
+  html{-webkit-text-size-adjust:100%}
+
+  body{
+    margin:0;
+    background:var(--paper);
+    background-image:
+      repeating-linear-gradient(0deg, rgba(0,0,0,.045) 0 1px, transparent 1px 28px),
+      repeating-linear-gradient(90deg, rgba(0,0,0,.045) 0 1px, transparent 1px 28px);
+    color:var(--ink);
+    font-family:"Archivo","Helvetica Neue",Helvetica,Arial,sans-serif;
+    font-size:16px;
+    line-height:1.5;
+  }
+
+  .wrap{max-width:1180px;margin:0 auto;padding:24px 20px 64px}
+
+  /* ---------- header ---------- */
+  .masthead{
+    border:var(--border);
+    background:var(--ink);
+    color:var(--paper);
+    box-shadow:var(--shadow);
+    padding:18px 22px;
+    display:flex;
+    flex-wrap:wrap;
+    gap:14px;
+    align-items:center;
+    justify-content:space-between;
+  }
+  .masthead h1{
+    font-family:"Archivo Black","Arial Black",Impact,sans-serif;
+    font-size:clamp(22px,4vw,34px);
+    letter-spacing:-.02em;
+    margin:0;
+    line-height:1;
+  }
+  .masthead p{margin:6px 0 0;font-size:14px;color:#C9C2B4;max-width:52ch}
+
+  .mode{display:flex;align-items:center;gap:10px}
+  .pill{
+    border:3px solid var(--paper);
+    background:var(--warn);
+    color:var(--ink);
+    font-weight:700;
+    font-size:12px;
+    letter-spacing:.06em;
+    padding:6px 12px;
+    text-transform:uppercase;
+  }
+  .pill[data-live="true"]{background:var(--retrieve)}
+
+  /* ---------- query bar ---------- */
+  .console{
+    margin-top:26px;
+    border:var(--border);
+    background:#fff;
+    box-shadow:var(--shadow);
+    padding:20px;
+  }
+  .field-row{display:flex;gap:14px;flex-wrap:wrap}
+  label{display:block;font-weight:700;font-size:13px;margin-bottom:6px}
+  input[type=text]{
+    flex:1 1 380px;
+    min-width:0;
+    border:var(--border);
+    background:var(--paper);
+    padding:14px 16px;
+    font:inherit;
+    font-size:17px;
+  }
+  input[type=text]:focus-visible,button:focus-visible,summary:focus-visible{
+    outline:4px solid var(--answer);
+    outline-offset:2px;
+  }
+  .run{
+    border:var(--border);
+    background:var(--warn);
+    box-shadow:var(--shadow-sm);
+    padding:14px 26px;
+    font:inherit;
+    font-weight:700;
+    font-size:17px;
+    cursor:pointer;
+    transition:transform .08s, box-shadow .08s;
+  }
+  .run:hover{transform:translate(-2px,-2px);box-shadow:5px 5px 0 var(--ink)}
+  .run:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--ink)}
+  .run[disabled]{background:#D8D2C6;cursor:progress;transform:none;box-shadow:var(--shadow-sm)}
+
+  .examples{margin-top:14px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .examples span{font-size:13px;color:var(--muted);margin-right:2px}
+  .chip{
+    border:2px solid var(--ink);
+    background:#fff;
+    padding:5px 10px;
+    font:inherit;
+    font-size:13px;
+    cursor:pointer;
+  }
+  .chip:hover{background:var(--warn)}
+
+  .endpoint{margin-top:16px;border-top:2px dashed var(--ink);padding-top:12px}
+  .endpoint summary{font-weight:700;font-size:13px;cursor:pointer}
+  .endpoint input{border:2px solid var(--ink);padding:8px 10px;font:inherit;font-size:14px;background:var(--paper);width:100%;max-width:420px;margin-top:8px}
+  .endpoint code{background:var(--paper);border:1px solid var(--ink);padding:1px 5px;font-size:13px}
+  .endpoint pre{
+    background:var(--ink);color:#E8E4DA;padding:12px;overflow:auto;
+    font-size:12.5px;line-height:1.5;margin:10px 0 0;border:2px solid var(--ink);
+  }
+
+  /* ---------- pipeline ---------- */
+  .pipeline{margin-top:26px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+  .stage{
+    border:var(--border);
+    background:#fff;
+    box-shadow:var(--shadow-sm);
+    padding:14px 16px;
+    position:relative;
+  }
+  .stage .num{
+    font-family:"Archivo Black","Arial Black",sans-serif;
+    font-size:13px;
+    border:2px solid var(--ink);
+    width:26px;height:26px;
+    display:grid;place-items:center;
+    background:var(--paper);
+  }
+  .stage h3{margin:10px 0 2px;font-size:16px}
+  .stage p{margin:0;font-size:13px;color:var(--muted)}
+  .stage[data-state="run"]{background:var(--warn)}
+  .stage[data-state="run"] p{color:var(--ink)}
+  .stage[data-state="done"]{background:var(--retrieve)}
+  .stage[data-state="done"] p{color:#04322D}
+  .stage[data-state="fail"]{background:var(--alert)}
+  .stage[data-state="fail"] p{color:#3A0A03}
+
+  /* ---------- results ---------- */
+  .results{margin-top:26px;display:grid;grid-template-columns:1.05fr .95fr;gap:20px;align-items:start}
+
+  .panel{border:var(--border);background:#fff;box-shadow:var(--shadow)}
+  .panel-head{
+    border-bottom:var(--border);
+    padding:12px 16px;
+    display:flex;align-items:baseline;justify-content:space-between;gap:10px;
+  }
+  .panel-head h2{margin:0;font-size:17px;font-family:"Archivo Black","Arial Black",sans-serif;letter-spacing:-.01em}
+  .panel-head .who{font-size:12px;font-weight:700;padding:3px 8px;border:2px solid var(--ink)}
+  .panel-retrieve .panel-head{background:var(--retrieve)}
+  .panel-answer .panel-head{background:var(--answer)}
+  .panel-body{padding:16px}
+
+  .source{border:2px solid var(--ink);padding:12px;margin-bottom:12px;background:var(--paper)}
+  .source:last-child{margin-bottom:0}
+  .source h4{margin:0 0 6px;font-size:15px;line-height:1.3}
+  .source h4 a{color:var(--ink)}
+  .source p{margin:0;font-size:13.5px;color:#3B342A}
+  .src-meta{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;align-items:center}
+  .badge{font-size:11px;font-weight:700;letter-spacing:.04em;border:2px solid var(--ink);padding:2px 7px;text-transform:uppercase}
+  .badge.europepmc{background:var(--retrieve)}
+  .badge.medlineplus{background:var(--warn)}
+  .badge.openfda{background:var(--answer)}
+  .date{font-size:12px;color:var(--muted)}
+
+  .answer-text{font-size:16.5px;line-height:1.62}
+  .answer-text p{margin:0 0 14px}
+  .answer-text p:last-child{margin-bottom:0}
+  .answer-text strong{background:var(--warn);padding:0 3px}
+
+  .placeholder{color:var(--muted);font-size:14px;border:2px dashed var(--ink);padding:22px;text-align:center}
+
+  .refusal{border:3px solid var(--ink);background:var(--alert);padding:16px;box-shadow:var(--shadow-sm)}
+  .refusal h3{margin:0 0 6px;font-size:16px}
+  .refusal p{margin:0;font-size:14px}
+
+  /* ---------- stats ---------- */
+  .stats{margin-top:20px;border:var(--border);background:var(--ink);color:var(--paper);box-shadow:var(--shadow);padding:16px 18px}
+  .stats h2{margin:0 0 12px;font-size:14px;font-weight:700;color:#C9C2B4}
+  .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:14px}
+  .stat b{display:block;font-family:"Archivo Black","Arial Black",sans-serif;font-size:26px;line-height:1.05}
+  .stat span{font-size:12.5px;color:#C9C2B4}
+  .stat.flag b{color:var(--warn)}
+
+  .disclaimer{
+    margin-top:20px;border:var(--border);background:var(--warn);
+    box-shadow:var(--shadow-sm);padding:14px 16px;font-size:14px;
+  }
+  .disclaimer b{font-family:"Archivo Black","Arial Black",sans-serif}
+
+  a{color:#1B4FD8}
+
+  @media (max-width:900px){
+    .results{grid-template-columns:1fr}
+    .pipeline{grid-template-columns:1fr}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .run{transition:none}
+    .run:hover{transform:none}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="masthead">
+    <div>
+      <h1>Medical crew — run console</h1>
+      <p>One query, two agents. The first gathers sources, the second answers using only what the first found.</p>
+    </div>
+    <div class="mode">
+      <span class="pill" id="modePill" data-live="false">Demo data</span>
+    </div>
+  </header>
+
+  <section class="console">
+    <div class="field-row">
+      <div style="flex:1 1 380px">
+        <label for="q">Medical question</label>
+        <input type="text" id="q" placeholder="e.g. what are the early symptoms of type 2 diabetes" autocomplete="off">
+      </div>
+      <div style="display:flex;align-items:flex-end">
+        <button class="run" id="runBtn">Run the crew</button>
+      </div>
+    </div>
+
+    <div class="examples">
+      <span>Try:</span>
+      <button class="chip" data-q="what are the early symptoms of type 2 diabetes">early symptoms of type 2 diabetes</button>
+      <button class="chip" data-q="what are the side effects of metformin">side effects of metformin</button>
+      <button class="chip" data-q="who won the world cup in 2018">off-topic query</button>
+      <button class="chip" data-q="zzzqqq nonexistent condition xyz">no sources found</button>
+    </div>
+
+    <details class="endpoint">
+      <summary>API settings and expected response shape</summary>
+      <label for="base" style="margin-top:10px">Base URL</label>
+      <input type="text" id="base" value="" spellcheck="false">
+      <p style="font-size:13.5px;margin:10px 0 0">
+        The console posts <code>{"query": "..."}</code> to <code>/query</code> or <code>/api/v1/search</code>. If that call fails it falls back to demo data.
+      </p>
+      <ul style="font-size:13.5px;margin:10px 0 0;padding-left:20px">
+        <li><code>answer</code> — synthesized evidence text from Agent 2.</li>
+        <li><code>sources</code> — array of verified source articles retrieved by Agent 1.</li>
+        <li><code>stats</code> — execution telemetry (LLM calls, latency, tokens, routed domains).</li>
+      </ul>
+    </details>
+  </section>
+
+  <section class="pipeline" aria-label="Pipeline stages">
+    <article class="stage" id="stage1" data-state="idle">
+      <div class="num">1</div>
+      <h3>Search and scrape</h3>
+      <p>Waiting for a query</p>
+    </article>
+    <article class="stage" id="stage2" data-state="idle">
+      <div class="num">2</div>
+      <h3>Research report</h3>
+      <p>Agent 1 writes the brief</p>
+    </article>
+    <article class="stage" id="stage3" data-state="idle">
+      <div class="num">3</div>
+      <h3>Final answer</h3>
+      <p>Agent 2 reads the brief only</p>
+    </article>
+  </section>
+
+  <section class="results">
+    <div class="panel panel-retrieve">
+      <div class="panel-head">
+        <h2>Sources gathered</h2>
+        <span class="who">Agent 1</span>
+      </div>
+      <div class="panel-body" id="sourcesBody" aria-live="polite">
+        <div class="placeholder">Run a query to see which articles survived the whitelist and length filters.</div>
+      </div>
+    </div>
+
+    <div class="panel panel-answer">
+      <div class="panel-head">
+        <h2>Answer</h2>
+        <span class="who">Agent 2</span>
+      </div>
+      <div class="panel-body" id="answerBody" aria-live="polite">
+        <div class="placeholder">Agent 2 has no tools and no internet. It only sees the question and agent 1's report.</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="stats">
+    <h2>Run telemetry</h2>
+    <div class="stat-grid">
+      <div class="stat"><b id="sLlm">—</b><span>Model calls</span></div>
+      <div class="stat"><b id="sLat">—</b><span>Total time</span></div>
+      <div class="stat"><b id="sFound">—</b><span>Sources found</span></div>
+      <div class="stat"><b id="sKept">—</b><span>Kept after filtering</span></div>
+      <div class="stat"><b id="sTokIn">—</b><span>Tokens in</span></div>
+      <div class="stat"><b id="sTokOut">—</b><span>Tokens out</span></div>
+      <div class="stat flag"><b id="sRoute">—</b><span>Routed to</span></div>
+    </div>
+  </section>
+
+  <p class="disclaimer">
+    <b>Not medical advice.</b> This is a student project that summarises published sources. It does not diagnose,
+    and it will not give dosing guidance. Talk to a doctor about anything concerning your own health.
+  </p>
+
+</div>
+
+<script>
+const DEMO = {
+  "what are the early symptoms of type 2 diabetes": {
+    answer: "Early type 2 diabetes often develops quietly, and many people have no symptoms at all for years. When symptoms do show up, the ones reported most consistently across the sources are increased thirst, needing to urinate more often (especially at night), unusual tiredness, blurred vision, and cuts or infections that heal slowly. Some people also notice unexplained weight loss or tingling in the hands and feet.\n\nBecause these signs are mild and easy to explain away, screening matters more than symptom-watching. The sources note that diagnosis often happens during routine blood tests rather than because someone felt unwell.\n\n**The report does not cover** risk thresholds, blood glucose numbers, or when to start treatment, so this answer says nothing about them.",
+    refused: false,
+    report: { sources: [
+      { title: "Diabetes Type 2 — symptoms and early signs", url: "https://medlineplus.gov/diabetestype2.html", snippet: "Symptoms may include increased thirst and urination, fatigue, blurred vision, slow-healing sores, and unintended weight loss. Many people have no symptoms in the early stage.", origin: "medlineplus", identifier: "MPLUS:diabetestype2", date: "2025-11-04" },
+      { title: "Symptom burden preceding type 2 diabetes diagnosis: a cohort study", url: "https://europepmc.org/article/MED/34567890", snippet: "In a cohort of 12,400 adults, polyuria and fatigue were the most frequently recorded presenting complaints in the 24 months before diagnosis; 41% of cases were detected on routine screening with no recorded symptoms.", origin: "europepmc", identifier: "PMID:34567890", date: "2024-06-18" },
+      { title: "Delayed wound healing as an early clinical marker", url: "https://europepmc.org/article/MED/33112244", snippet: "Impaired healing and recurrent skin infections were associated with undiagnosed hyperglycaemia at presentation in primary care settings.", origin: "europepmc", identifier: "PMID:33112244", date: "2023-02-09" },
+      { title: "Prediabetes — what to watch for", url: "https://medlineplus.gov/prediabetes.html", snippet: "Prediabetes usually has no clear symptoms. Some people develop darkened skin on the neck or armpits. Blood testing is the reliable way to detect it.", origin: "medlineplus", identifier: "MPLUS:prediabetes", date: "2025-08-22" }
+    ]},
+    stats: { llm_calls:2, latency_ms:13840, tokens_in:5920, tokens_out:410, sources_found:9, sources_kept:4, routed_to:["medlineplus","europepmc"] }
+  },
+  "what are the side effects of metformin": {
+    answer: "The label and the literature agree that the most common side effects are digestive: diarrhoea, nausea, stomach upset, a metallic taste, and gas. These are usually worst when starting the medicine and often settle over a few weeks.\n\nThe rare but serious one flagged on the FDA label is lactic acidosis, with risk higher in people who have kidney problems, drink heavily, or are dehydrated. Long-term use is also linked to reduced vitamin B12 absorption.\n\n**No dosing information is included here.** The report contains label text but this system does not give dose guidance — that is a conversation for a doctor or pharmacist.",
+    refused: false,
+    report: { sources: [
+      { title: "METFORMIN HYDROCHLORIDE tablet — adverse reactions", url: "https://api.fda.gov/drug/label.json", snippet: "The most common adverse reactions are diarrhea, nausea, vomiting, flatulence, asthenia, indigestion, abdominal discomfort and headache. Boxed warning: lactic acidosis.", origin: "openfda", identifier: "FDA:8a3f21c0", date: "2025-01-30" },
+      { title: "Metformin", url: "https://medlineplus.gov/druginfo/meds/a696005.html", snippet: "Tell your doctor if you experience symptoms such as extreme tiredness, weakness, unusual muscle pain, or trouble breathing. Digestive side effects are common when beginning treatment.", origin: "medlineplus", identifier: "MPLUS:a696005", date: "2025-05-12" },
+      { title: "Vitamin B12 deficiency with long-term metformin use", url: "https://europepmc.org/article/MED/35998877", snippet: "Meta-analysis of 29 studies found a significant association between metformin duration and reduced serum B12, supporting periodic monitoring.", origin: "europepmc", identifier: "PMID:35998877", date: "2024-09-03" }
+    ]},
+    stats: { llm_calls:2, latency_ms:15220, tokens_in:7310, tokens_out:395, sources_found:12, sources_kept:3, routed_to:["openfda","medlineplus","europepmc"] }
+  },
+  "who won the world cup in 2018": {
+    answer: null,
+    refused: true,
+    refusal_reason: "This does not look like a health question, so the crew did not run. Ask about a condition, symptom, or medicine.",
+    report: { sources: [] },
+    stats: { llm_calls:0, latency_ms:40, tokens_in:0, tokens_out:0, sources_found:0, sources_kept:0, routed_to:[] }
+  },
+  "zzzqqq nonexistent condition xyz": {
+    answer: null,
+    refused: true,
+    refusal_reason: "No trusted sources matched this query, so agent 2 was never called. Nothing is answered from the model's own memory.",
+    report: { sources: [] },
+    stats: { llm_calls:0, latency_ms:2610, tokens_in:0, tokens_out:0, sources_found:0, sources_kept:0, routed_to:["medlineplus","europepmc","openfda"] }
+  }
+};
+
+const FALLBACK = {
+  answer: null,
+  refused: true,
+  refusal_reason: "The API did not respond and this query has no demo data. Start your FastAPI server, or pick one of the example queries above.",
+  report: { sources: [] },
+  stats: { llm_calls:0, latency_ms:0, tokens_in:0, tokens_out:0, sources_found:0, sources_kept:0, routed_to:[] }
+};
+
+const $ = id => document.getElementById(id);
+const stages = [$("stage1"), $("stage2"), $("stage3")];
+const stageIdle = ["Waiting for a query","Agent 1 writes the brief","Agent 2 reads the brief only"];
+
+function setStages(state, note){
+  stages.forEach((s,i) => {
+    s.dataset.state = state;
+    s.querySelector("p").textContent = note ? note[i] : stageIdle[i];
+  });
+}
+
+function esc(s){
+  return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+
+function renderSources(sources){
+  const body = $("sourcesBody");
+  if(!sources || !sources.length){
+    body.innerHTML = '<div class="placeholder">No sources passed the filters for this query.</div>';
+    return;
+  }
+  body.innerHTML = sources.map(s => `
+    <article class="source">
+      <div class="src-meta">
+        <span class="badge ${esc(s.origin || "medlineplus")}">${esc(s.origin || "source")}</span>
+        ${s.identifier ? `<span class="date">${esc(s.identifier)}</span>` : ""}
+        ${s.date ? `<span class="date">· ${esc(s.date)}</span>` : ""}
+      </div>
+      <h4><a href="${esc(s.url || '#')}" target="_blank" rel="noopener noreferrer">${esc(s.title || 'Untitled Source')}</a></h4>
+      <p>${esc(s.snippet || s.text || "")}</p>
+    </article>`).join("");
+}
+
+function extractAnswer(v, depth){
+  depth = depth || 0;
+  if(v == null || depth > 4) return null;
+  if(typeof v === "string"){
+    const t = v.trim();
+    if(t.startsWith("{") || t.startsWith("[")){
+      try{ return extractAnswer(JSON.parse(t), depth+1); }catch(e){ return t; }
+    }
+    return t.replace(/^```(?:json|markdown)?\s*|\s*```$/g, "").trim() || null;
+  }
+  if(typeof v === "object"){
+    for(const k of ["answer","report","raw","output","result","text","final_answer","content"]){
+      if(v[k] != null){
+        const found = extractAnswer(v[k], depth+1);
+        if(found) return found;
+      }
+    }
+  }
+  return null;
+}
+
+function normalize(data){
+  if(typeof data === "string"){
+    try{ data = JSON.parse(data); }catch(e){ data = { answer: data }; }
+  }
+  if(!data || typeof data !== "object") data = {};
+  const inner = data.result || data.data || data;
+  return {
+    answer: extractAnswer(data),
+    refused: !!(data.refused ?? inner.refused),
+    refusal_reason: data.refusal_reason ?? inner.refusal_reason ?? null,
+    report: { sources: (data.sources)
+                     || (data.report && data.report.sources)
+                     || (inner.report && inner.report.sources)
+                     || inner.sources || [] },
+    stats: data.stats || inner.stats || {}
+  };
+}
+
+function renderAnswer(data){
+  const body = $("answerBody");
+  if(data.refused || !data.answer){
+    body.innerHTML = `<div class="refusal">
+      <h3>Agent 2 did not answer</h3>
+      <p>${esc(data.refusal_reason || "The report contained nothing usable.")}</p>
+    </div>`;
+    return;
+  }
+  const html = esc(data.answer)
+    .split(/\n\n+/)
+    .map(p => "<p>" + p.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>").replace(/\n/g, "<br>") + "</p>")
+    .join("");
+  body.innerHTML = `<div class="answer-text">${html}</div>`;
+}
+
+function renderStats(st){
+  st = st || {};
+  $("sLlm").textContent = st.llm_calls ?? "—";
+  $("sLat").textContent = st.latency_ms ? (st.latency_ms/1000).toFixed(1) + "s" : "—";
+  $("sFound").textContent = st.sources_found ?? "—";
+  $("sKept").textContent = st.sources_kept ?? "—";
+  $("sTokIn").textContent = st.tokens_in ?? "—";
+  $("sTokOut").textContent = st.tokens_out ?? "—";
+  $("sRoute").textContent = (st.routed_to && st.routed_to.length) ? st.routed_to.join(" + ") : "none";
+}
+
+async function run(){
+  const query = $("q").value.trim();
+  if(!query){ $("q").focus(); return; }
+
+  const btn = $("runBtn");
+  btn.disabled = true;
+  btn.textContent = "Running…";
+  setStages("run", ["Hitting the source APIs","Waiting on agent 1","Queued behind agent 1"]);
+  $("sourcesBody").innerHTML = '<div class="placeholder">Fetching…</div>';
+  $("answerBody").innerHTML = '<div class="placeholder">Waiting for the report…</div>';
+
+  let data = null, live = false;
+  try{
+    const baseInput = $("base").value.trim().replace(/\/+$/,"");
+    const base = baseInput || window.location.origin;
+    let res;
+    try {
+      res = await fetch(base + "/query", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ query })
+      });
+    } catch(e) {
+      res = await fetch(base + "/api/v1/search", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ query })
+      });
+    }
+    if(!res || !res.ok) {
+      res = await fetch(base + "/api/v1/search", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ query })
+      });
+    }
+    if(!res.ok) throw new Error("HTTP " + res.status);
+    data = normalize(await res.json());
+    live = true;
+  }catch(err){
+    console.warn("Live API request failed, using demo fallback:", err);
+    data = DEMO[query.toLowerCase()] || FALLBACK;
+  }
+
+  $("modePill").textContent = live ? "Live API" : "Demo data";
+  $("modePill").dataset.live = live ? "true" :="false";
+
+  const kept = data.stats ? (data.stats.sources_kept ?? (data.report?.sources?.length || 0)) : (data.report?.sources?.length || 0);
+  if(data.refused || (!kept && !data.answer)){
+    setStages("fail", ["Stopped here","Never ran","Never ran"]);
+    stages[0].dataset.state = kept ? "done" : "fail";
+  }else{
+    setStages("done", ["Scraped and filtered","Brief written","Answered from the brief"]);
+  }
+
+  renderSources(data.report && data.report.sources);
+  renderAnswer(data);
+  renderStats(data.stats);
+
+  btn.disabled = false;
+  btn.textContent = "Run the crew";
+}
+
+$("runBtn").addEventListener("click", run);
+$("q").addEventListener("keydown", e => { if(e.key === "Enter") run(); });
+document.querySelectorAll(".chip").forEach(c =>
+  c.addEventListener("click", () => { $("q").value = c.dataset.q; run(); })
+);
+</script>
+</body>
+</html>
