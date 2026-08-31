@@ -1,6 +1,8 @@
 import os
 
+# pyrefly: ignore [missing-import]
 from src.core.cache import SQLiteCache
+# pyrefly: ignore [missing-import]
 from src.core.scraper import clean_html_text, scrape_article
 
 

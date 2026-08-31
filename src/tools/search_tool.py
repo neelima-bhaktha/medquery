@@ -4,6 +4,7 @@ from typing import Type
 from crewai.tools import BaseTool
 from pydantic import BaseModel, Field
 
+# pyrefly: ignore [missing-import]
 from src.core.search import search_medical_sources
 
 logger = logging.getLogger(__name__)
