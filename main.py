@@ -3,7 +3,11 @@ import logging
 import os
 import sys
 
+# pyrefly: ignore [missing-import]
 from src.config.settings import DEFAULT_OUTPUT_FILE, OUTPUT_DIR
+# pyrefly: ignore [missing-import]
+from src.config.validation import validate_config
+# pyrefly: ignore [missing-import]
 from src.crew import run_medical_crew
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -11,6 +15,13 @@ logger = logging.getLogger("main")
 
 
 def main():
+    # Validate startup environment configuration first
+    try:
+        validate_config(strict=True)
+    except RuntimeError as e:
+        print(e)
+        sys.exit(1)
+
     parser = argparse.ArgumentParser(description="MedQuery CrewAI Multi-Agent Medical Assistant")
     parser.add_argument(
         "--query",

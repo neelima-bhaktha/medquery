@@ -1,4 +1,5 @@
 import logging
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 
 from fastapi import FastAPI, HTTPException, status
@@ -8,12 +9,28 @@ from fastapi.middleware.cors import CORSMiddleware
 from src.api.schemas import HealthResponse, QueryRequest, QueryResponse, SourcesResponse
 
 # pyrefly: ignore [missing-import]
+from src.config.validation import validate_config
+
+# pyrefly: ignore [missing-import]
 from src.core.whitelist import TRUSTED_DOMAINS
 
 # pyrefly: ignore [missing-import]
 from src.crew import run_medical_crew
 
 logger = logging.getLogger("api")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    FastAPI lifespan handler running startup configuration validation.
+    Crashes immediately on boot if GROQ_API_KEY is missing.
+    """
+    logger.info("Executing FastAPI startup configuration validation...")
+    validate_config(strict=True)
+    yield
+    logger.info("Shutting down FastAPI server.")
+
 
 app = FastAPI(
     title="MedQuery Medical Crew API",
@@ -24,6 +41,7 @@ app = FastAPI(
     version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
+    lifespan=lifespan,
 )
 
 # Configure CORS Middleware

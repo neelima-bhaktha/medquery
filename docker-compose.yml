@@ -1,0 +1,32 @@
+version: "3.8"
+
+services:
+  medquery-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: medquery-api
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8000
+      - RELOAD=false
+    volumes:
+      - medquery_cache:/app/.cache
+      - medquery_outputs:/app/outputs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  medquery_cache:
+    name: medquery_cache_volume
+  medquery_outputs:
+    name: medquery_outputs_volume
