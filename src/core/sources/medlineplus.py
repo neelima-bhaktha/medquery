@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 MEDLINEPLUS_SERVICE_URL = "https://connect.medlineplus.gov/service"
 
 
-def search_medlineplus(query: str, limit: int = 3, timeout: int = 5) -> List[Source]:
+def search_medlineplus(query: str, limit: int = 3, timeout: float = 2.5) -> List[Source]:
     """
     Search MedlinePlus Web Service for patient & consumer health information.
     Returns normalized Source objects.

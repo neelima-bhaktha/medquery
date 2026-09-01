@@ -258,12 +258,12 @@
     <details class="endpoint">
       <summary>API settings and expected response shape</summary>
       <label for="base" style="margin-top:10px">Base URL</label>
-      <input type="text" id="base" value="" spellcheck="false">
+      <input type="text" id="base" value="" placeholder="Default: same host as page (e.g. http://localhost:8000)" spellcheck="false">
       <p style="font-size:13.5px;margin:10px 0 0">
-        The console posts <code>{"query": "..."}</code> to <code>/query</code> or <code>/api/v1/search</code>. If that call fails it falls back to demo data.
+        The console posts <code>{"query": "..."}</code> to <code>/api/v1/search</code> or <code>/query</code>. If that call fails it falls back to demo data.
       </p>
       <ul style="font-size:13.5px;margin:10px 0 0;padding-left:20px">
-        <li><code>answer</code> — synthesized evidence text from Agent 2.</li>
+        <li><code>answer</code> / <code>report</code> — synthesized evidence text from Agent 2.</li>
         <li><code>sources</code> — array of verified source articles retrieved by Agent 1.</li>
         <li><code>stats</code> — execution telemetry (LLM calls, latency, tokens, routed domains).</li>
       </ul>
@@ -489,8 +489,16 @@ async function run(){
 
   let data = null, live = false;
   try{
-    const baseInput = $("base").value.trim().replace(/\/+$/,"");
-    const base = baseInput || window.location.origin;
+    const rawInput = $("base") ? $("base").value.trim().replace(/\/+$/,"") : "";
+    let base = "";
+    if(rawInput) {
+      base = rawInput;
+    } else if(window.location.protocol.startsWith("http")) {
+      base = window.location.origin;
+    } else {
+      base = "http://localhost:8000";
+    }
+
     let res;
     try {
       res = await fetch(base + "/query", {
@@ -506,11 +514,13 @@ async function run(){
       });
     }
     if(!res || !res.ok) {
-      res = await fetch(base + "/api/v1/search", {
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({ query })
-      });
+      if(!res || res.status === 404 || res.status === 405) {
+        res = await fetch(base + "/api/v1/search", {
+          method:"POST",
+          headers:{"Content-Type":"application/json"},
+          body: JSON.stringify({ query })
+        });
+      }
     }
     if(!res.ok) throw new Error("HTTP " + res.status);
     data = normalize(await res.json());
@@ -521,7 +531,7 @@ async function run(){
   }
 
   $("modePill").textContent = live ? "Live API" : "Demo data";
-  $("modePill").dataset.live = live ? "true" :="false";
+  $("modePill").dataset.live = live ? "true" : "false";
 
   const kept = data.stats ? (data.stats.sources_kept ?? (data.report?.sources?.length || 0)) : (data.report?.sources?.length || 0);
   if(data.refused || (!kept && !data.answer)){

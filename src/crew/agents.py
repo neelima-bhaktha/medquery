@@ -13,25 +13,28 @@ from src.crew.prompts import (
 from src.tools import FetchArticleTool, MedicalSearchTool
 
 
-def create_researcher_agent(llm: Any) -> Agent:
+def create_researcher_agent(llm: Any, enable_tools: bool = False) -> Agent:
     """
-    Agent 1 (Medical Researcher): Has both tools (search_medical_sources and fetch_article).
-    Gathers evidence and compiles structured Pydantic research report.
+    Agent 1 (Medical Researcher).
+    When enable_tools=False (default), zero tools are attached so evidence is extracted
+    directly from pre-fetched input context in 1 LLM call with minimal token usage.
     """
+    tools = [MedicalSearchTool(), FetchArticleTool()] if enable_tools else []
     return Agent(
         role=RESEARCHER_ROLE,
         goal=RESEARCHER_GOAL,
         backstory=RESEARCHER_BACKSTORY,
-        tools=[MedicalSearchTool(), FetchArticleTool()],
+        tools=tools,
         llm=llm,
         verbose=True,
+        max_iter=3,
         allow_delegation=False,
     )
 
 
 def create_explainer_agent(llm: Any) -> Agent:
     """
-    Agent 2 (Medical Explainer): Has ZERO tools.
+    Agent 2 (Medical Explainer): Zero tools, max_iter=3.
     Receives Task 1 report via context=[research_task] and synthesizes patient-friendly response.
     """
     return Agent(
@@ -41,5 +44,6 @@ def create_explainer_agent(llm: Any) -> Agent:
         tools=[],  # Strictly zero tools
         llm=llm,
         verbose=True,
+        max_iter=3,
         allow_delegation=False,
     )

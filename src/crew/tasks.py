@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 from crewai import Agent, Task
 from pydantic import BaseModel, Field
@@ -7,82 +7,59 @@ from pydantic import BaseModel, Field
 class ArticleFinding(BaseModel):
     """Pydantic model representing key findings extracted from a single medical source."""
 
-    source_name: str = Field(
-        ...,
-        description="Name of the medical database or source (e.g., Europe PMC, MedlinePlus, openFDA).",
-    )
-    title: str = Field(..., description="Title of the article or drug label.")
-    url: str = Field(..., description="Full URL of the article or reference link.")
-    key_findings: List[str] = Field(
-        ...,
-        description="List of key medical findings, trial results, warnings, or dosage details extracted.",
-    )
-    evidence_quality: str = Field(
-        ...,
-        description="Quality rating (e.g., High Quality Peer-Reviewed, Official FDA Label, Consumer Health Guide).",
-    )
+    source_name: str = Field(default="Medical Source", description="Name of database.")
+    title: str = Field(default="Medical Article", description="Title of article or label.")
+    url: str = Field(default="", description="Source URL.")
+    key_findings: List[str] = Field(default_factory=list, description="Key medical findings or warnings extracted.")
 
 
 class MedicalResearchReport(BaseModel):
-    """Pydantic model representing the complete structured research output from Task 1."""
+    """Pydantic model representing structured research output from Task 1."""
 
-    query: str = Field(..., description="The original medical query string.")
-    summary_of_evidence: str = Field(
-        ...,
-        description="High-level executive summary of evidence collected across all sources.",
+    query: str = Field(default="", description="Medical query string.")
+    summary_of_evidence: Optional[str] = Field(
+        default="Evidence gathered from medical sources.", description="Executive summary of evidence."
     )
     findings: List[ArticleFinding] = Field(
-        ...,
-        description="List of structured findings extracted from each fetched article.",
-    )
-    confidence_score: str = Field(
-        ...,
-        description="Overall confidence score (e.g., High, Moderate, Low) based on available evidence.",
+        default_factory=list, description="Extracted findings from fetched articles."
     )
 
 
 def get_research_task(agent: Agent, query: str) -> Task:
     """
-    Task 1: Search medical databases, fetch key articles, and generate structured Pydantic report.
+    Task 1: Search medical databases, fetch key articles, and generate structured evidence report.
     """
     return Task(
         description=(
-            f"1. Search trusted medical databases for the query: '{query}' using search_medical_sources.\n"
-            "2. Identify the most relevant article URLs from the search results.\n"
-            "3. Use fetch_article to extract full text content from 2-3 key URLs.\n"
-            "4. Analyze the text content and extract key medical findings, drug indications, or clinical trial data.\n"
-            "5. Compile the extracted evidence into a clean, structured Pydantic MedicalResearchReport."
+            f"Analyze query: '{query}' using provided sources_context input.\n"
+            "If sources_context input is present, extract evidence directly from it.\n"
+            "Otherwise use search_medical_sources and fetch_article tools.\n"
+            "Compile evidence into a structured medical research report."
         ),
-        expected_output=(
-            "A structured MedicalResearchReport containing query, summary of evidence, "
-            "and a list of ArticleFinding objects (source_name, title, url, key_findings, evidence_quality)."
-        ),
-        output_pydantic=MedicalResearchReport,
+        expected_output="Structured research report containing query summary and key medical findings.",
         agent=agent,
     )
 
 
 def get_explanation_task(agent: Agent, query: str, research_task: Task) -> Task:
     """
-    Task 2: Translate structured research report into a clear, patient-friendly medical explanation.
+    Task 2: Translate research report into a clear medical explanation.
     Receives Task 1 output via context=[research_task].
     """
     desc = (
-        f"Review the user query '{query}' and the structured medical research report provided in your context.\n\n"
-        "STRICT GROUNDING & SAFETY RULES:\n"
-        "1. You MUST answer ONLY from the provided research report context. If the report doesn't cover a topic, "
-        "explicitly state that the information is not available in the retrieved report instead of guessing.\n"
-        "2. Refuse any requests for specific personal medical diagnoses or personalized prescription dosing rules.\n"
-        "3. Synthesize findings into Executive Summary, Evidence Breakdown with clickable links, and Interpretation.\n"
-        "4. Your response MUST conclude with the exact line:\n"
+        f"Review query '{query}' and research report in context.\n"
+        "RULES:\n"
+        "1. Answer ONLY from retrieved report context.\n"
+        "2. Refuse personal medical diagnosis or dosing rules.\n"
+        "3. Include Executive Summary, Evidence Breakdown with links, and Interpretation.\n"
+        "4. End with exact line:\n"
         "'This information is for educational purposes only and does not constitute medical advice. "
         "Always consult a qualified healthcare professional for medical diagnosis or treatment.'"
     )
     expected = (
-        "A Markdown medical report derived exclusively from retrieved evidence, refusing personal diagnosis/dosing, "
-        "and concluding with the mandatory line: 'This information is for educational purposes only and does not "
-        "constitute medical advice. Always consult a qualified healthcare professional for medical diagnosis "
-        "or treatment.'"
+        "Markdown medical report from retrieved evidence, concluding with mandatory line: "
+        "'This information is for educational purposes only and does not constitute medical advice. "
+        "Always consult a qualified healthcare professional for medical diagnosis or treatment.'"
     )
 
     return Task(

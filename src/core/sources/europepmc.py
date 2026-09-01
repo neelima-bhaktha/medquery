@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 EUROPE_PMC_URL = "https://www.ebi.ac.uk/europepmc/webservices/rest/search"
 
 
-def search_europepmc(query: str, limit: int = 3, timeout: int = 5) -> List[Source]:
+def search_europepmc(query: str, limit: int = 3, timeout: float = 2.5) -> List[Source]:
     """
     Search Europe PMC REST API for scientific literature, trials, and research papers.
     Returns normalized Source objects.

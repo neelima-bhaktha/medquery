@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 OPENFDA_URL = "https://api.fda.gov/drug/label.json"
 
 
-def search_openfda(query: str, limit: int = 3, timeout: int = 5) -> List[Source]:
+def search_openfda(query: str, limit: int = 3, timeout: float = 2.5) -> List[Source]:
     """
     Search openFDA Drug Labeling API for drug indications, dosage, warnings, and brand names.
     Returns normalized Source objects.

@@ -13,7 +13,7 @@ TEST_MODEL = "groq/llama-3.3-70b-versatile"
 
 
 def test_agent_tool_configurations():
-    researcher = create_researcher_agent(TEST_MODEL)
+    researcher = create_researcher_agent(TEST_MODEL, enable_tools=True)
     explainer = create_explainer_agent(TEST_MODEL)
 
     # Agent 1 (Researcher) MUST have both tools

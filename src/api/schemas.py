@@ -1,4 +1,4 @@
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
@@ -19,9 +19,11 @@ class QueryResponse(BaseModel):
     """Output response containing generated Markdown report and execution metadata."""
 
     query: str = Field(..., description="The original medical query.")
-    answer: str = Field(..., description="Synthesized medical response from Explainer Agent.")
-    report: str = Field(..., description="Generated Markdown medical report from Explainer Agent.")
-    status: str = Field(..., description="Execution status (e.g., success, error).")
+    answer: Optional[str] = Field(default="", description="Synthesized medical response from Explainer Agent.")
+    report: Optional[str] = Field(default="", description="Generated Markdown medical report from Explainer Agent.")
+    status: str = Field(..., description="Execution status (e.g., success, error, refused).")
+    refused: bool = Field(default=False, description="Whether query execution was refused due to rate limit/safety.")
+    refusal_reason: Optional[str] = Field(default=None, description="Detailed explanation for query refusal.")
     created_at: str = Field(..., description="ISO 8601 timestamp of response generation.")
     sources: List[Dict[str, Any]] = Field(
         default_factory=list, description="List of verified sources retrieved by Agent 1."

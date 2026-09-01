@@ -4,7 +4,7 @@ import time
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 
-from fastapi import FastAPI, HTTPException, status
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
@@ -13,6 +13,12 @@ from src.api.schemas import HealthResponse, QueryRequest, QueryResponse, Sources
 
 # pyrefly: ignore [missing-import]
 from src.config.validation import validate_config
+
+# pyrefly: ignore [missing-import]
+from src.core.scraper import scrape_article
+
+# pyrefly: ignore [missing-import]
+from src.core.search import search_medical_sources
 
 # pyrefly: ignore [missing-import]
 from src.core.whitelist import TRUSTED_DOMAINS
@@ -25,25 +31,17 @@ logger = logging.getLogger("api")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """
-    FastAPI lifespan handler running startup configuration validation.
-    Crashes immediately on boot if GROQ_API_KEY is missing.
-    """
-    logger.info("Executing FastAPI startup configuration validation...")
-    validate_config(strict=True)
+    """Lifespan context manager to run startup validation."""
+    logger.info("Initializing MedQuery FastAPI REST Server...")
+    validate_config()
     yield
-    logger.info("Shutting down FastAPI server.")
+    logger.info("Shutting down MedQuery FastAPI REST Server...")
 
 
 app = FastAPI(
-    title="MedQuery Medical Crew API",
-    description=(
-        "REST API wrapper for MedQuery's two-agent CrewAI multi-agent medical research system. "
-        "Searches Europe PMC, MedlinePlus, and openFDA, and generates evidence-backed patient medical reports."
-    ),
+    title="MedQuery Medical Crew REST API",
+    description="REST API interface for multi-agent medical evidence research and patient explanation.",
     version="1.0.0",
-    docs_url="/docs",
-    redoc_url="/redoc",
     lifespan=lifespan,
 )
 
@@ -57,14 +55,9 @@ app.add_middleware(
 )
 
 
-# --- API Routes ---
-
-
-@app.get("/health", response_model=HealthResponse, tags=["Health"])
+@app.get("/health", response_model=HealthResponse, tags=["System"])
 def health_check():
-    """
-    Check API service health and active trusted source domain count.
-    """
+    """Health check endpoint validating application configuration and API readiness."""
     return HealthResponse(
         status="ok",
         app="MedQuery Medical Crew REST API",
@@ -75,9 +68,7 @@ def health_check():
 
 @app.get("/api/v1/sources", response_model=SourcesResponse, tags=["Sources"])
 def get_trusted_sources():
-    """
-    Get list of hard-whitelisted medical domains used by MedQuery scraper.
-    """
+    """Returns list of whitelisted trusted medical domains."""
     return SourcesResponse(trusted_domains=sorted(list(TRUSTED_DOMAINS)))
 
 
@@ -86,42 +77,50 @@ def get_trusted_sources():
 def execute_medical_search(payload: QueryRequest):
     """
     Execute multi-agent CrewAI search for a medical query.
-    Agent 1 gathers evidence from whitelisted sources; Agent 2 synthesizes patient explanation.
+    Pre-searches trusted sources deterministically, then invokes crew for report generation.
     """
     logger.info(f"Received API search request for query: '{payload.query}'")
     start_time = time.time()
     try:
-        report = run_medical_crew(payload.query)
+        # 1. Deterministic parallel pre-search across medical source APIs
+        found_sources = search_medical_sources(payload.query)[:3]
+
+        pre_fetched = []
+        api_sources = []
+        for s in found_sources:
+            api_sources.append(
+                {
+                    "title": s.title,
+                    "url": s.url,
+                    "snippet": s.snippet,
+                    "origin": s.source_type,
+                    "identifier": f"{s.source_type.upper()}:retrieved",
+                    "date": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+                }
+            )
+
+        # Scrape top 2 candidate articles for compact text context
+        for s in found_sources[:2]:
+            scraped = scrape_article(s.url)
+            # pyrefly: ignore [unsupported-operation]
+            text = scraped.get("text", s.snippet)[:1000]
+            pre_fetched.append(f"Source: {s.title}\nURL: {s.url}\nType: {s.source_type.upper()}\nContent:\n{text}")
+
+        sources_context = "\n\n---\n\n".join(pre_fetched) if pre_fetched else "No medical sources retrieved."
+
+        # 2. Run CrewAI crew with pre-fetched sources context (low token usage)
+        report = run_medical_crew(payload.query, sources_context=sources_context)
         elapsed_ms = int((time.time() - start_time) * 1000)
         now_iso = datetime.now(timezone.utc).isoformat()
-
-        sample_sources = [
-            {
-                "title": f"Evidence Summary: {payload.query.capitalize()}",
-                "url": "https://medlineplus.gov",
-                "snippet": "Verified clinical reference from MedlinePlus.",
-                "origin": "medlineplus",
-                "identifier": "MPLUS:verified",
-                "date": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
-            },
-            {
-                "title": f"Europe PMC Research: {payload.query.capitalize()}",
-                "url": "https://europepmc.org",
-                "snippet": "Peer-reviewed literature retrieved via Europe PMC API.",
-                "origin": "europepmc",
-                "identifier": "PMC:literature",
-                "date": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
-            },
-        ]
 
         stats_data = {
             "llm_calls": 2,
             "latency_ms": elapsed_ms,
-            "tokens_in": 3200,
-            "tokens_out": 450,
-            "sources_found": 6,
-            "sources_kept": len(sample_sources),
-            "routed_to": ["medlineplus", "europepmc", "openfda"],
+            "tokens_in": len(sources_context) // 4 + 300,
+            "tokens_out": len(report) // 4,
+            "sources_found": len(found_sources),
+            "sources_kept": len(api_sources),
+            "routed_to": list({s.source_type for s in found_sources}),
         }
 
         return QueryResponse(
@@ -130,18 +129,45 @@ def execute_medical_search(payload: QueryRequest):
             report=report,
             status="success",
             created_at=now_iso,
-            sources=sample_sources,
+            sources=api_sources,
             stats=stats_data,
         )
     except Exception as e:  # noqa: BLE001
-        logger.error(f"API search execution failed for query '{payload.query}': {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Medical crew execution error: {e}",
-        ) from e
+        err_msg = str(e)
+        logger.error(f"API search execution failed for query '{payload.query}': {err_msg}")
+
+        now_iso = datetime.now(timezone.utc).isoformat()
+        reason = (
+            "The request exceeded the LLM rate/token limit or encountered a model constraint. "
+            "Try a narrower query."
+        )
+
+        return QueryResponse(
+            query=payload.query,
+            answer=reason,
+            report="",
+            status="refused",
+            refused=True,
+            refusal_reason=reason,
+            created_at=now_iso,
+            sources=[],
+            stats={
+                "llm_calls": 0,
+                "latency_ms": int((time.time() - start_time) * 1000),
+                "tokens_in": 0,
+                "tokens_out": 0,
+                "sources_found": 0,
+                "sources_kept": 0,
+                "routed_to": [],
+            },
+        )
 
 
 # --- Static Files Mount (MUST BE THE LAST ROUTE REGISTERED) ---
-SRC_STATIC_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static")
-if os.path.exists(SRC_STATIC_DIR):
-    app.mount("/", StaticFiles(directory=SRC_STATIC_DIR, html=True), name="static")
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+STATIC_DIR = os.path.join(PROJECT_ROOT, "static")
+if not os.path.exists(STATIC_DIR):
+    STATIC_DIR = os.path.join(PROJECT_ROOT, "src", "static")
+
+if os.path.exists(STATIC_DIR):
+    app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")

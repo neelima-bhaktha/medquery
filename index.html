@@ -489,28 +489,38 @@ async function run(){
 
   let data = null, live = false;
   try{
-    const baseInput = $("base").value.trim().replace(/\/+$/,"");
-    const base = baseInput || window.location.origin;
+    const rawInput = $("base") ? $("base").value.trim().replace(/\/+$/,"") : "";
+    let base = "";
+    if(rawInput) {
+      base = rawInput;
+    } else if(window.location.protocol.startsWith("http")) {
+      base = window.location.origin;
+    } else {
+      base = "http://localhost:8000";
+    }
+
     let res;
     try {
-      res = await fetch(base + "/api/v1/search", {
+      res = await fetch(base + "/query", {
         method:"POST",
         headers:{"Content-Type":"application/json"},
         body: JSON.stringify({ query })
       });
     } catch(e) {
-      res = await fetch(base + "/query", {
+      res = await fetch(base + "/api/v1/search", {
         method:"POST",
         headers:{"Content-Type":"application/json"},
         body: JSON.stringify({ query })
       });
     }
     if(!res || !res.ok) {
-      res = await fetch(base + "/query", {
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({ query })
-      });
+      if(!res || res.status === 404 || res.status === 405) {
+        res = await fetch(base + "/api/v1/search", {
+          method:"POST",
+          headers:{"Content-Type":"application/json"},
+          body: JSON.stringify({ query })
+        });
+      }
     }
     if(!res.ok) throw new Error("HTTP " + res.status);
     data = normalize(await res.json());

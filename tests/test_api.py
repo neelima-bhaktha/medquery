@@ -59,4 +59,4 @@ def test_search_endpoint_success(mock_run_crew):
     assert "created_at" in data
     assert "sources" in data
     assert "stats" in data
-    mock_run_crew.assert_called_once_with("ibuprofen dosage and side effects")
+    assert mock_run_crew.call_args[0][0] == "ibuprofen dosage and side effects"

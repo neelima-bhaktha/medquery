@@ -62,7 +62,7 @@ def search_medical_sources(
         for future in as_completed(future_to_source):
             source_name = future_to_source[future]
             try:
-                source_results = future.result(timeout=10)
+                source_results = future.result(timeout=3)
                 all_sources.extend(source_results)
             except Exception as e:  # noqa: BLE001
                 logger.warning(f"Parallel fetch for source '{source_name}' failed: {e}")
